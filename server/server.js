@@ -1,16 +1,15 @@
 require('dotenv').config({path: '../env'})
 const debug = require('debug')('qa')
 const mongoose = require('mongoose')
-mongoose.connect( 'mongodb://localhost/qa' )
+const config = require('./config')
+mongoose.connect(config.db, {useMongoClient: true} )
 mongoose.Promise = global.Promise
 const express = require('express')
-const api = require( './api/api')
+const api = require('./api/api')
 const path = require('path')
 const Tag = require('./models/Tag')
 const Question = require('./models/Question')
 const clientPath =  path.normalize( __dirname + '/../client/build')
-const fs = require('fs')
-const oauthGoogleJs = fs.readFileSync('./oauth/oauth-callback-google.js')
 const app = express()
 
 
@@ -18,120 +17,87 @@ const app = express()
 // custom properties
 app.use( (req,res,next) => {
 
-	res.sent = false
-
 	res.sendApp = function sendApp(){
-		this.sendFile(clientPath+'/main.html')
-		this.sent = true
+		res.sendFile(clientPath+'/main.html')
 	}
 
 	next()
 
 })
 
-const markAsSent = (req,res,next) => { res.sent = true; next(); }
+app.use('/assets', express.static( clientPath ))
+app.use('/api', api)
 
-app.use('/assets', express.static( clientPath ), markAsSent)
-app.use('/api', api, markAsSent )
-
-
-
-const justSendApp = function(req, res, next){
-
-	res.sent = true
+const justSendApp = function(req, res){
 	res.sendFile(clientPath+'/main.html')
 	debug('justSendApp')
-	next()
 }
 
-app.get('/debug', (req,res,next) => {
-	res.sent = true
+app.get('/debug', (req, res) => {
 	res.send('ooo')
-	throw "XXXXXXXXXXXXXXXx"
-	next()
-
-
+	throw 'debug'
 })
-
+app.get('/', (req, res) => res.redirect('/questions'))
 app.get('/about', justSendApp )
 app.get('/ask', justSendApp )
 app.get('/questions', justSendApp )
 app.get('/tags', justSendApp )
 app.get('/login', justSendApp )
-app.get('/oauth-callback-google', (req,res) => {
-	res.send(`<html><script>${oauthGoogleJs}</script></html>`)
+app.get('/profile', justSendApp )
+app.get('/oauth-callback', (req,res) => {
+	res.send(
+		`<html><script>
+			window.opener.oauthCallback(window.location.hash)
+			window.close()
+		</script></html>`
+	)
 })
-app.get('/t/:tags', (req,res,next) => {
-
-	if ( res.sent ){
-		next()
-		return
-	}
+app.get('/t/:tags', (req, res, next) => {
 
 	Tag.findOne( { name: req.params.tag }, (err, doc) => {
 
 		if(err){
-			res.status(500)
+			next(err)
 		}
 		else if( doc == null )
-			res.status(404)
+			return res.status(404).sendApp()
 		else if( doc ){
-			res.sendApp()
+			return res.sendApp()
 		}
 	})
 
 })
-app.get('/q/:question', (req,res,next) => {
-
-	if ( res.sent ){
-		next()
-		return
-	}
+app.get('/q/:question', (req, res, next) => {
 
 	Question.findOne( { id: req.params.question }, {id: 1}, (err, doc) =>{
 		if (err){
-			res.status(500)
-			next()
+			next(err)
 		}
 		else if( doc === null ){
-			res.status(404)
-			next()
+			res.status(404).sendApp()
 		}
 		else {
-
 			res.sendApp()
 		}
-
-
 	})
 
 })
 
+app.use( (req, res) => {
 
-app.use( (err,req,res,next) => {
-
-	debug( err )
-
-
-	if ( res.sent ){
-		next()
-		return
-	}
-
-	res.status(500).sendApp()
-})
-
-app.use( (req,res,next) => {
-
-	if ( res.sent ){
-		// next()
-		return
-	}
-
+	debug('404')
 
 	res.status(404).sendApp()
 })
 
+
+app.use( (err, req, res, next) => {
+
+	debug( err )
+
+	res.status(500).sendApp()
+})
+
 app.listen(9090, function () {
-  console.log('Server listening on http://localhost:9090')
+	console.log('Server listening on http://localhost:9090')
 })

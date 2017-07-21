@@ -6,12 +6,12 @@ import Questions from './components/Questions'
 import Ask from './components/Ask'
 import Header from './components/Header'
 import Login from './components/Login'
+import Profile from './components/Profile'
 
 import React from 'react'
 import ReactDOM from 'react-dom'
 import {Route, Switch, Link, BrowserRouter} from 'react-router-dom'
 import store from './store'
-
 
 function render(){
     ReactDOM.render((
@@ -24,6 +24,7 @@ function render(){
                 <Route exact path="/questions" component={Questions}/>
                 <Route exact path="/tags" component={Tags}/>
                 <Route exact path="/login" component={Login}/>
+                <Route exact path="/profile" component={Profile}/>
                 <Route exact path="/q/:question" component={QuestionThread}/>
                 <Route component={NotFound}/>
               </Switch>

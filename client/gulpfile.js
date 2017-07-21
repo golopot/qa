@@ -17,10 +17,10 @@ gulp.task('dash', function(cb){
     cb()
 })
 
-// gulp.task('font-awesome', function(){
-//     return gulp.src('./../node_modules/font-awesome/**')
-//         .pipe( gulp.dest('./build/css/font-awesome'))
-// })
+gulp.task('font-awesome', function(){
+    return gulp.src('./../node_modules/font-awesome/**')
+        .pipe( gulp.dest('./build/css/font-awesome'))
+})
 
 gulp.task('watch', ['default'], function(){
     gulp.watch('./src/**', ['default'] )

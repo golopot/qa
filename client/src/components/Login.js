@@ -2,10 +2,9 @@ import React from 'react'
 import {Link} from 'react-router-dom'
 import TagLink from './TagLink'
 import qs from 'qs'
-
+import config from '../config'
 
 function oauthCallback(hash){
-	window.localStorage['o-google'] = hash
 
 	fetch('/api/signin-oauth',{
 		method: 'post',
@@ -13,7 +12,14 @@ function oauthCallback(hash){
 		body: JSON.stringify({hash}),
 	})
 	.then( r => r.json())
-	.then( r => console.log(r))
+	.then( r => {
+		document.cookie = `authtoken=${r.token};SameSite=Strict`
+		// Max-Age=31536000
+		window.localStorage['user'] = r.uname
+		window.localStorage['email'] = r.email 
+		window.location.href = '/'
+
+	})
 	.catch( e => console.error(e) )
 }
 
@@ -28,16 +34,16 @@ class Login extends React.Component{
 		window.oauthCallback = oauthCallback
         var params = {
             client_id: '806708806553-ausj6asg5gof7tnfg2c20jjv32cm8jf6.apps.googleusercontent.com',
-            redirect_uri: 'http://www.tsmc.com:9090/oauth-callback-google',
+            redirect_uri: `http://${location.host}/oauth-callback`,
             response_type: 'token',
             scope: 'https://www.googleapis.com/auth/userinfo.email',
             include_granted_scopes: 'true',
-            state: 'ee=xxx&force=5',
+            state: 'foo=bar',
         }
 
 		var newWindow = window.open(
 			'https://accounts.google.com/o/oauth2/v2/auth?'+qs.stringify(params),
-			'gooogle oauth',
+			null,
 			`width=525,height=725,left=${screenX+40},top=${screenY+40}`
 		)
 

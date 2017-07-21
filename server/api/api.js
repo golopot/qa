@@ -3,9 +3,9 @@ const Tag = require('./../models/Tag')
 const User = require('./../models/User')
 const Question = require('./../models/Question')
 const Answer = require('./../models/Answer')
-const mongoose = require('mongoose')
+// const mongoose = require('mongoose')
 const debug = require('debug')('qa')
-const pnr = s => {debug(s); return s;}
+const pnr = s => {debug(s); return s}
 const bodyParser = require('body-parser')
 const router = express.Router()
 const fetch = require('node-fetch')
@@ -28,9 +28,43 @@ const ko = obj => {
 }
 
 
-
-
 router.use( bodyParser.json() )
+
+
+
+router.use( (req, res, next) => {
+	res.E400 = e => {
+		res.status(400).json({
+			error:{
+				status: '400',
+				title: e || 'Bad request'
+			}
+		})
+		console.log(e)
+	}
+
+	res.E404 = e => {
+		res.status(404).json({
+			error:{
+				status: '400',
+				title: e || 'Not found'
+			}
+		})
+		console.log(e)
+	}
+
+	res.E500 = e => {
+		res.status(500).json({
+			error:{
+				status: '500',
+				title: e || 'Server error'
+			}
+		})
+		console.log(e)
+	}
+
+	next()
+})
 
 router.get('/', (req,res) => {
 	res.json('eee')
@@ -39,19 +73,17 @@ router.get('/', (req,res) => {
 
 router.get('/tags', (req,res) => {
 
-	Tag.find({}, (err,data)=>{
-		res.json(data)
-	})
+	Tag.collection.find({}).sort({count: -1}).toArray()
+	.then( docs => res.json(docs))
+	.catch( e => res.E500(e) )
 
 })
-
 
 router.post('/delete_post/:question', (req,res) => {
 
 	Question.findOne({id: req.params.question}, {id: true, tag: true})
-	.then( doc => QuestionIndexUtils.deleteQuestion( doc.id, doc.tag) )
-	.then( () => Question.remove({id: req.params.id}) )
-	.catch( e => {res.status(400).end(); console.log(e)} )
+		.then( () => Question.remove({id: req.params.id}) )
+		.catch( e => {res.status(400).end(); console.log(e)} )
 
 })
 
@@ -81,25 +113,20 @@ router.get('/question-list', (req,res) => {
 })
 
 
-router.post('/cast_vote/:question', (req,res,next) => {
+router.post('/cast-vote/:question', (req,res,next) => {
 
 
 	var questionId = req.params.question
 
 	Question.voteUp( questionId )
-	.then( () => QuestionIndexUtils.updateVotes( questionId ) )
+	.then( votes => res.json({votes}))
 	.catch( e => {
-		if ( e == 'ARTICLE_NOT_FOUND' )
-			res.status(400).send(e)
-		else if ( e == 'ARTICLE_NOT_FOUND_IN_INDEX')
-			res.status(400).send(e)
-		else if ( e == 'VOTE_TWICE')
-			res.status(400).send(e)
+		if ( e === 'ARTICLE_NOT_FOUND' || e === 'VOTE_TWICE' )
+			res.E400(e)
 		else{
-			next(e)
+			res.E500(e)
 		}
 	})
-
 })
 
 
@@ -131,7 +158,7 @@ router.post('/submit-question', (req,res) => {
 	Question.fancyInsert(question)
 	.then( () => Promise.all( question.tags.map( t => Tag.updateCount(t) ) ) )
 	.then( () => {res.json('success')} )
-	.catch( (e) => {res.status(400).end();console.error(e)})
+	.catch( e => res.E500(e) )
 
 })
 
@@ -153,7 +180,7 @@ router.post('/submit-answer', (req,res) => {
 	.then( answerId => Question.collection.update(
 		{id: ~~b.question}, {$push: {answers: answerId} } ) )
 	.then( () => {res.json('sucess')} )
-	.catch( e => console.error(e) )
+	.catch( e => res.E500(e) )
 })
 
 
@@ -161,6 +188,7 @@ router.get('/question/:id', (req,res) => {
 	Question.findOne({id: req.params.id}).exec().then( r => {
 		res.json( r )
 	})
+	.catch( e => res.E500(e))
 })
 
 
@@ -174,15 +202,15 @@ router.get('/question-thread/:id', (req,res) => {
 		res.json( {question: q, answers: as})
 	})
 	.catch( e => {
-		if(e == 'doc is null') res.status(404).send('')
-		else {res.status(500).send(''); debug(e);}
+		if(e == 'doc is null') res.E404('Question not found')
+		else res.E500(e)
 	})
 })
 
 
 router.post('/signin-oauth', (req,res,next) => {
 	var {access_token} = qs.parse(req.body.hash.substring(1))
-	if( !access_token ){res.status(400).send('')}
+	if (!access_token) res.E400('')
 
 	const checkClientIdMatch = () =>
 		fetch(
@@ -203,47 +231,48 @@ router.post('/signin-oauth', (req,res,next) => {
 			method: 'get',
 			headers: {Authorization: `Bearer ${access_token}`}
 		})
-		.then( r => r.json())
-		.then( r => {
-			if( r.verified_email !== true ) throw('google email is not verified')
-			return r
-		})
-		.then( r => r.gid )
+			.then( r => r.json())
+			.then( r => {
+				if( r.verified_email !== true ) throw('google email is not verified')
+				return r
+			})
 
-	const createUser = (gid) => {
-		return User.fancyInsert(new User({gid}))
-		.then( id => User.collection.findOne({id}) )
-	}
+	const createUser = (info) =>
+		User.fancyInsert(new User({
+			gid: info.id,
+			name: 'unnamed',
+			email: info.email,
+		}))
+			.then( id => User.collection.findOne({id}) )
 
-	const findOrCreateUser = (gid) =>
-		User.collection.findOne({gid})
-		.then( x => x === null ? createUser(gid) : x )
+	const findOrCreateUser = (info) =>
+		User.collection.findOne({gid: info.id})
+			.then( x => x || createUser(info) )
 
 	const sendToken = (user) => {
 		const id = user.id
 		const pre = `${id}.${Date.now()}`
 		const hash = crypto.createHmac('sha256', appsecret).update(pre).digest('hex')
 		const token = `${pre}.${hash}`
-		res.json({token})
+		res.json({token, uname:user.name, email:user.email})
 	}
+
 
 	checkClientIdMatch()
 	.then(getUserInfo)
 	.then(findOrCreateUser)
 	.then(sendToken)
-	.catch( e => { console.error(e); res.status(500).send('')} )
+	.catch( e => res.E500(e) )
 
 })
 
-router.use( (err,req,res,next) => {
-
-	console.log( err )
-	res.status(500).send( JSON.stringify('500 server error.\n'))
+router.use( (req, res) => {
+	res.E404()
 })
 
-router.use( (req,res) => {
-
-	res.status(404).send('404 not found\n')
+router.use( (err, req, res, next) => {
+	res.E500()
 })
+
 
 module.exports = router

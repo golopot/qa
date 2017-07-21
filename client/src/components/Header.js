@@ -3,7 +3,7 @@ import {Link, withRouter} from 'react-router-dom'
 
 
 const Header = () => (
-  <div id="header">
+  <header id="header">
     <div id='logo'>
       <Link to="/questions"><span>Potato</span></Link>
     </div>
@@ -15,12 +15,19 @@ const Header = () => (
     <div><SearchBox /></div>
     <div id='head-right'>
       <div><Link to='/ask'>Ask</Link></div>
-      <div><span>Answer</span></div>
       <div><Link to='/tags'>Tags</Link></div>
-      <div><span>Notifications</span></div>
-      <div><Link to='/Login'>Login</Link></div>
+      <div><LoginLink /></div>
+      <div></div>
     </div>
-  </div>
+  </header>
+)
+
+
+const LoginLink = () => (
+	window.localStorage['email']
+	? <Link to='/profile'>{window.localStorage['email']}</Link>
+	: <Link to='/login'>Login</Link>
+
 )
 
 class SearchBox extends React.Component{

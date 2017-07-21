@@ -17,11 +17,21 @@ class QuestionThread extends React.Component{
 		.catch( e => console.error(e))
 	}
 
+	upvote(){
+
+		fetch(`/api/cast-vote/${this.props.match.params.question}`, {method: 'post'})
+		.then( r => r.json() )
+		.then( r => {
+			this.state.data.question.votes = r.votes
+			this.setState(this.state)
+		})
+	}
+
 	render(){
 		return (
 			<div className='question-thread'>
-				<Question q={this.state.data.question} />
-				<Answers as={this.state.data.answers} />
+				<Question q={this.state.data.question} upvote={this.upvote.bind(this)} />
+				{/* <Answers as={this.state.data.answers} /> */}
 				<AnswerForm question={this.props.match.params.question}/>
 			</div>
 		)
@@ -34,10 +44,7 @@ function readableTime(date){
 
 const Metaline = ({user, date_edit, date_submit, votes}) => (
 	<div className='metaline'>
-		<div className='votes'>
-			<div className='votes-proper'>{votes}</div>
-			<div className='updown'><div>+</div><div>-</div></div>
-		</div>
+
 		<div className='author-date'>
 			<div>{user}</div>
 			<div>{readableTime(date_submit)}</div>
@@ -45,10 +52,19 @@ const Metaline = ({user, date_edit, date_submit, votes}) => (
 	</div>
 )
 
-const Question = ({q}) => q && (
+const Question = ({q, upvote}) => q && (
 	<div className='question'>
-		<Metaline  {...q} />
-		<div className='title'>{q.title}</div>
+		<div className='title-heading'>
+			<div className='votes-group'>
+				<div className='votes'>{q.votes}</div>
+				<div className='updown'>
+					<div onClick={upvote}>↑</div>
+					<div>↓</div>
+				</div>
+			</div>
+			<div className='title'>{q.title}</div>
+		</div>
+
 		<div className='body'>{q.content}</div>
 		<div className='foot'>
 			<div className='tagline'>{q.tags.map( x => <TagLink name={x} key={x} /> )}</div>
@@ -90,7 +106,7 @@ class AnswerForm extends React.Component{
 	}
 
 	render(){return(
-		<div>
+		<div className='answer-form'>
 			<textarea placeholder='Write answer here' ref={t => this.textarea = t} />
 			<button onClick={this.submit.bind(this)}>submit</button>
 		</div>

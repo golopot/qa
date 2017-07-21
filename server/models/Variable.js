@@ -1,13 +1,13 @@
 // intended to be use as a key value pair collection
 
-const mongoose = require('mongoose');
+const mongoose = require('mongoose')
 
 const schema = new mongoose.Schema({
 
-}, { timestamps: true });
+}, { timestamps: true })
 
 
-const model = mongoose.model('Variables', schema);
+const model = mongoose.model('Variables', schema)
 
 
 

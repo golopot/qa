@@ -4,21 +4,21 @@ Moi.number = function(){ return new MoiType(Number)  }
 Moi.date = function(){ return new MoiType(Date)  }
 Moi.translate = function(obj){
 
-    if( typeof obj == "string" )
-        return
+	if( typeof obj == 'string' )
+		return
 
 
-    for( var key in obj ){
+	for( var key in obj ){
 
-        if( obj[key] instanceof MoiType )
-            obj[key] = Object.assign({}, obj[key])
-        else{
-            Moi.translate( obj[key] )
-        }
+		if( obj[key] instanceof MoiType )
+			obj[key] = Object.assign({}, obj[key])
+		else{
+			Moi.translate( obj[key] )
+		}
 
-    }
+	}
 
-    return obj
+	return obj
 
 }
 

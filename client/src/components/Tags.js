@@ -15,11 +15,12 @@ class TagList extends React.Component{
 
 
     render(){
-        if ( this.state && this.state.data && this.state.data.length > 0 )
-            var list = this.state.data
-                .map( (x,i) => <TagItem key={i} name={x.name}/> )
-        else
-            var list = null
+		const list = this.state 
+			&& this.state.data
+			&& this.state.data.length > 0
+			&& this.state.data
+                .map( (x, i) => <TagItem key={i} name={x.name} count={x.count} /> )
+			|| null
 
 
         return(
@@ -29,7 +30,7 @@ class TagList extends React.Component{
               </div>
 
 
-              <div id='tags-list'>
+              <div id='tag-list'>
                 {list}
               </div>
 
@@ -41,8 +42,8 @@ class TagList extends React.Component{
 
 
 
-const TagItem = ({name}) => (
-    <div><TagLink name={name}/></div>
+const TagItem = ({name, count}) => (
+    <div><TagLink name={name}/> <span>{count}</span></div>
 
 )
 

@@ -1,7 +1,7 @@
 const data = require('./sodata.json')
 const host = 'http://localhost:9090'
 const fetch = require('node-fetch')
-console.log(data.items[1])
+
 function populate(){
 
     for(let entry of data.items){
@@ -18,15 +18,10 @@ function populate(){
                 user,
             })
         })
-        .then( x => console.log(x))
-        .catch( e => console.log(e))
+        .then( r => r.json(r))
+		.then( r => console.log(r) )
+        .catch( e => console.error(e))
     }
-
 }
-
-function clean(){
-
-}
-
 
 populate()
