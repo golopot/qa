@@ -1,23 +1,24 @@
 var webpack = require('webpack')
+const UglifyJSPlugin = require('uglifyjs-webpack-plugin')
 
 module.exports = {
   entry: {
-    app : './src/main.js',
-    vendor : ['react', 'react-dom', 'react-router']
+    app: './src/main.js',
+    vendor: ['react', 'react-dom', 'react-router']
   },
   output: {
-    filename : 'bundle.js',
-    path : __dirname + '/build/js'
+    filename: 'bundle.js',
+    path: __dirname + '/build/js'
   },
   plugins: [
     new webpack.optimize.CommonsChunkPlugin({
         name: "vendor",
         filename: "vendor.js",
-    })
-
+    }),
+	new UglifyJSPlugin({})
   ],
   module: {
-    loaders:[
+    loaders: [
       {
         test: /\.js[x]?$/,
         exclude: /node_modules/,
